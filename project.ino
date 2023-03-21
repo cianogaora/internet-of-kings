@@ -5,6 +5,7 @@
 #include <Adafruit_Sensor.h>
 #include "time.h"
 #include "DHT.h"
+#include "light.ino"
 
 
 // Provide the token generation process info.
@@ -54,6 +55,8 @@ const char* ntpServer = "pool.ntp.org";
 // DHT sensor
 #define DHT11PIN 33
 DHT dht(DHT11PIN, DHT11);
+//light sensor
+#define LIGHT_SENSOR_PIN 35
 
 float temperature;
 float humidity;
@@ -145,8 +148,28 @@ void loop(){
 
     json.set(tempPath.c_str(), String(dht.readTemperature()));
     json.set(humPath.c_str(), String(dht.readHumidity()));
-    json.set(humPath.c_str(), String(dht.readLight()));
     json.set(timePath, String(timestamp));
     Serial.printf("Set json... %s\n", Firebase.RTDB.setJSON(&fbdo, parentPath.c_str(), &json) ? "ok" : fbdo.errorReason().c_str());
+
+    //light code
+    int analogValue = analogRead(LIGHT_SENSOR_PIN);
+
+      Serial.print("Analog Value = ");
+      Serial.print(analogValue);   // the raw analog reading
+
+      // We'll have a few threshholds, qualitatively determined
+      if (analogValue < 40) {
+        Serial.println(" => Dark");
+      } else if (analogValue < 800) {
+        Serial.println(" => Dim");
+      } else if (analogValue < 2000) {
+        Serial.println(" => Light");
+      } else if (analogValue < 3200) {
+        Serial.println(" => Bright");
+      } else {
+        Serial.println(" => Very bright");
+      }    
+      Firebase.setFloat(fbdo, "/light", analogValue);
+      delay(500);
   }
 }
